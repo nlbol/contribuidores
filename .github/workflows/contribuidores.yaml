@@ -1,0 +1,184 @@
+name: Generar y Publicar HTML
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      ORG: nlbol
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: 📥 Clonar repositorio
+        uses: actions/checkout@v3
+
+      - name: 📦 Instalar jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: 🔧 Generar HTML
+        run: |
+          mkdir -p public
+          touch public/.nojekyll
+
+          repos=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/orgs/$ORG/repos?per_page=100" | jq -r '.[].name')
+
+          declare -A global_commits
+          declare -A repo_commits
+
+          for repo in $repos; do
+            response=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+              "https://api.github.com/repos/$ORG/$repo/contributors?per_page=100")
+
+            while read -r login commits; do
+              global_commits["$login"]=$(( ${global_commits["$login"]} + commits ))
+              repo_commits["$login:$repo"]=$commits
+            done < <(echo "$response" | jq -r '.[] | "\(.login) \(.contributions)"')
+          done
+
+          total_global=0
+          for count in "${global_commits[@]}"; do
+            total_global=$(( total_global + count ))
+          done
+
+          OUTPUT=public/index.html
+          cat <<EOF > $OUTPUT
+          <!DOCTYPE html>
+          <html lang="es">
+          <head>
+            <meta charset="UTF-8">
+            <title>Contribuciones - ${ORG^^}</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+              body {
+                font-family: system-ui, sans-serif;
+                margin: 2rem auto;
+                max-width: 960px;
+                padding: 1rem;
+                background: #f4f6f8;
+                color: #2d3436;
+              }
+              h1 {
+                text-align: center;
+                color: #2c3e50;
+              }
+              table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 2rem;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+                background: #ffffff;
+                border-radius: 8px;
+                overflow: hidden;
+              }
+              th {
+                background-color: #2c3e50;
+                color: #ecf0f1;
+                padding: 1rem;
+                text-align: left;
+                font-weight: 600;
+              }
+              td {
+                border-top: 1px solid #ecf0f1;
+                padding: 0.75rem;
+                text-align: left;
+                vertical-align: top;
+                background-color: #ffffff;
+              }
+              tr:nth-child(even) td {
+                background-color: #f9f9f9;
+              }
+              ul {
+                padding-left: 1.2rem;
+                margin: 0;
+              }
+              footer {
+                margin-top: 3rem;
+                text-align: center;
+                font-size: 0.9rem;
+                color: #7f8c8d;
+              }
+              @media (max-width: 600px) {
+                table, thead, tbody, th, td, tr {
+                  display: block;
+                }
+                th {
+                  position: absolute;
+                  top: -9999px;
+                  left: -9999px;
+                }
+                td {
+                  border: none;
+                  position: relative;
+                  padding-left: 50%;
+                  margin-bottom: 0.5rem;
+                }
+                td:before {
+                  position: absolute;
+                  top: 0;
+                  left: 0;
+                  width: 45%;
+                  padding-left: 0.5rem;
+                  font-weight: bold;
+                  white-space: nowrap;
+                }
+                td:nth-of-type(1):before { content: "Usuario"; }
+                td:nth-of-type(2):before { content: "Total"; }
+                td:nth-of-type(3):before { content: "% Global"; }
+                td:nth-of-type(4):before { content: "Por Repositorio"; }
+              }
+            </style>
+          </head>
+          <body>
+            <h1>📊 Informe de Contribuciones - NLBOL</h1>
+            <p>Total de commits: <strong>$total_global</strong></p>
+            <table>
+              <thead>
+                <tr>
+                  <th>Usuario</th>
+                  <th>Total</th>
+                  <th>% Global</th>
+                  <th>Por Repositorio</th>
+                </tr>
+              </thead>
+              <tbody>
+          EOF
+          
+          for user in $(for u in "${!global_commits[@]}"; do echo "$u ${global_commits[$u]}"; done | sort -k2 -nr | awk '{print $1}'); do
+            user_total=${global_commits["$user"]}
+            percent_global=$(awk "BEGIN { printf \"%.1f\", ($user_total/$total_global)*100 }")
+
+            detail="<ul>"
+            for repo in $repos; do
+              key="$user:$repo"
+              if [[ -n "${repo_commits[$key]}" ]]; then
+                repo_total=${repo_commits[$key]}
+                percent_repo=$(awk "BEGIN { printf \"%.1f\", ($repo_total/$user_total)*100 }")
+                detail+="<li>$repo: $repo_total commits (${percent_repo}%)</li>"
+              fi
+            done
+            detail+="</ul>"
+
+            echo "<tr><td>$user</td><td>$user_total</td><td>${percent_global}%</td><td>$detail</td></tr>" >> $OUTPUT
+          done
+
+          cat <<EOF >> $OUTPUT
+              </tbody>
+            </table>
+            <footer>
+              Generado automáticamente por GitHub Actions.
+            </footer>
+          </body>
+          </html>
+          EOF
+
+      - name: 🚀 Subir a GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
+          publish_branch: gh-pages
