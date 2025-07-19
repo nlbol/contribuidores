@@ -17,6 +17,10 @@
       text-align: center;
       color: #2c3e50;
     }
+    .table-container {
+      overflow-x: auto;
+      max-height: 80vh;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -25,6 +29,7 @@
       background: #ffffff;
       border-radius: 8px;
       overflow: hidden;
+      min-width: 600px;
     }
     th {
       background-color: #2c3e50;
@@ -32,6 +37,9 @@
       padding: 1rem;
       text-align: left;
       font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 1;
     }
     td {
       border-top: 1px solid #ecf0f1;
@@ -53,7 +61,16 @@
       font-size: 0.9rem;
       color: #7f8c8d;
     }
+    .fecha {
+      text-align: center;
+      font-size: 0.9rem;
+      color: #636e72;
+      margin-top: 1rem;
+    }
     @media (max-width: 600px) {
+      .table-container {
+        overflow-x: auto;
+      }
       table, thead, tbody, th, td, tr {
         display: block;
       }
@@ -86,7 +103,9 @@
 </head>
 <body>
   <h1>📊 Informe de Contribuciones - NLBOL</h1>
-  <p>Total de commits: <strong>447</strong></p>
+  <p>Total de commits: <strong>456</strong></p>
+  <div class="fecha">Última actualización: <strong>2025-07-19 00:04:08 UTC</strong></div>
+  <div class="table-container">
   <table>
     <thead>
       <tr>
@@ -97,11 +116,12 @@
       </tr>
     </thead>
     <tbody>
-<tr><td>crim50n</td><td>304</td><td>68.0%</td><td><ul><li>minios-live: 304 commits (100.0%)</li></ul></td></tr>
-<tr><td>FershoUno</td><td>134</td><td>30.0%</td><td><ul><li>minunux-website: 13 commits (9.7%)</li><li>minios-minunux: 1 commits (0.7%)</li><li>modulos: 13 commits (9.7%)</li><li>minunux: 4 commits (3.0%)</li><li>recursos: 7 commits (5.2%)</li><li>minios-live: 10 commits (7.5%)</li><li>minudocs: 10 commits (7.5%)</li><li>wallpapers: 1 commits (0.7%)</li><li>plurios-icons: 6 commits (4.5%)</li><li>plurios-live: 10 commits (7.5%)</li><li>pluridocs: 19 commits (14.2%)</li><li>plurios-grub-theme-oit: 6 commits (4.5%)</li><li>plurios-languages: 1 commits (0.7%)</li><li>plurios-plymouth-theme-spinner: 5 commits (3.7%)</li><li>contribuidores: 3 commits (2.2%)</li><li>deb: 17 commits (12.7%)</li><li>plurios-calamares-settings: 8 commits (6.0%)</li></ul></td></tr>
+<tr><td>crim50n</td><td>304</td><td>66.7%</td><td><ul><li>minios-live: 304 commits (100.0%)</li></ul></td></tr>
+<tr><td>FershoUno</td><td>143</td><td>31.4%</td><td><ul><li>minunux-website: 13 commits (9.1%)</li><li>minios-minunux: 1 commits (0.7%)</li><li>modulos: 13 commits (9.1%)</li><li>minunux: 4 commits (2.8%)</li><li>recursos: 7 commits (4.9%)</li><li>minios-live: 10 commits (7.0%)</li><li>minudocs: 10 commits (7.0%)</li><li>wallpapers: 1 commits (0.7%)</li><li>plurios-icons: 6 commits (4.2%)</li><li>plurios-live: 10 commits (7.0%)</li><li>pluridocs: 21 commits (14.7%)</li><li>plurios-grub-theme-oit: 10 commits (7.0%)</li><li>plurios-languages: 1 commits (0.7%)</li><li>plurios-plymouth-theme-spinner: 5 commits (3.5%)</li><li>contribuidores: 4 commits (2.8%)</li><li>deb: 19 commits (13.3%)</li><li>plurios-calamares-settings: 8 commits (5.6%)</li></ul></td></tr>
 <tr><td>amosbatto</td><td>9</td><td>2.0%</td><td><ul><li>plurios-languages: 9 commits (100.0%)</li></ul></td></tr>
     </tbody>
   </table>
+  </div>
   <footer>
     Generado automáticamente por GitHub Actions.
   </footer>
