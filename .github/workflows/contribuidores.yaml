@@ -90,7 +90,6 @@ jobs:
           <td>$detail</td>
           </tr>"
           done
-          done
 
           
           template_content=$(cat plantilla.html)
