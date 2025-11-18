@@ -50,127 +50,8 @@ jobs:
           fecha_actual="$(date +"%Y-%m-%d %H:%M:%S %Z")"
 
           OUTPUT=public/index.html
-          cat <<EOF > $OUTPUT
-          <!DOCTYPE html>
-          <html lang="es">
-          <head>
-            <meta charset="UTF-8">
-            <title>Contribuciones - ${ORG^^}</title>
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <style>
-              body {
-                font-family: system-ui, sans-serif;
-                margin: 2rem auto;
-                max-width: 960px;
-                padding: 1rem;
-                background: #f4f6f8;
-                color: #2d3436;
-              }
-              h1 {
-                text-align: center;
-                color: #2c3e50;
-              }
-              .table-container {
-                overflow-x: auto;
-                max-height: 80vh;
-              }
-              table {
-                width: 100%;
-                border-collapse: collapse;
-                margin-top: 2rem;
-                box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-                background: #ffffff;
-                border-radius: 8px;
-                overflow: hidden;
-                min-width: 600px;
-              }
-              th {
-                background-color: #2c3e50;
-                color: #ecf0f1;
-                padding: 1rem;
-                text-align: left;
-                font-weight: 600;
-                position: sticky;
-                top: 0;
-                z-index: 1;
-              }
-              td {
-                border-top: 1px solid #ecf0f1;
-                padding: 0.75rem;
-                text-align: left;
-                vertical-align: top;
-                background-color: #ffffff;
-              }
-              tr:nth-child(even) td {
-                background-color: #f9f9f9;
-              }
-              ul {
-                padding-left: 1.2rem;
-                margin: 0;
-              }
-              footer {
-                margin-top: 3rem;
-                text-align: center;
-                font-size: 0.9rem;
-                color: #7f8c8d;
-              }
-              .fecha {
-                text-align: center;
-                font-size: 0.9rem;
-                color: #636e72;
-                margin-top: 1rem;
-              }
-              @media (max-width: 600px) {
-                .table-container {
-                  overflow-x: auto;
-                }
-                table, thead, tbody, th, td, tr {
-                  display: block;
-                }
-                th {
-                  position: absolute;
-                  top: -9999px;
-                  left: -9999px;
-                }
-                td {
-                  border: none;
-                  position: relative;
-                  padding-left: 50%;
-                  margin-bottom: 0.5rem;
-                }
-                td:before {
-                  position: absolute;
-                  top: 0;
-                  left: 0;
-                  width: 45%;
-                  padding-left: 0.5rem;
-                  font-weight: bold;
-                  white-space: nowrap;
-                }
-                td:nth-of-type(1):before { content: "Usuario"; }
-                td:nth-of-type(2):before { content: "Total"; }
-                td:nth-of-type(3):before { content: "% Global"; }
-                td:nth-of-type(4):before { content: "Por Repositorio"; }
-              }
-            </style>
-          </head>
-          <body>
-            <h1>📊 Informe de Contribuciones - NLBOL</h1>
-            <p>Total de commits: <strong>$total_global</strong></p>
-            <div class="fecha">Última actualización: <strong>$fecha_actual</strong></div>
-            <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Usuario</th>
-                  <th>Total</th>
-                  <th>% Global</th>
-                  <th>Por Repositorio</th>
-                </tr>
-              </thead>
-              <tbody>
-          EOF
           
+          rows=""
           for user in $(for u in "${!global_commits[@]}"; do echo "$u ${global_commits[$u]}"; done | sort -k2 -nr | awk '{print $1}'); do
             user_total=${global_commits["$user"]}
             percent_global=$(awk "BEGIN { printf \"%.1f\", ($user_total/$total_global)*100 }")
@@ -186,19 +67,19 @@ jobs:
             done
             detail+="</ul>"
 
-            echo "<tr><td>$user</td><td>$user_total</td><td>${percent_global}%</td><td>$detail</td></tr>" >> $OUTPUT
+            rows+="<tr><td>$user</td><td>$user_total</td><td>${percent_global}%</td><td>$detail</td></tr>"
           done
 
-          cat <<EOF >> $OUTPUT
-              </tbody>
-            </table>
-            </div>
-            <footer>
-              Generado automáticamente por GitHub Actions.
-            </footer>
-          </body>
-          </html>
-          EOF
+          
+          template_content=$(cat plantilla.html)
+template_content="${template_content//{{ORG}}/$ORG}"
+          template_content="${template_content//{{ORG_UPPER}}/${ORG^^}}"
+          template_content="${template_content//{{TOTAL_GLOBAL}}/$total_global}"
+          template_content="${template_content//{{FECHA_ACTUAL}}/$fecha_actual}"
+          template_content="${template_content//{{ROWS}}/$rows}"
+
+          # Guardar en el mismo lugar que antes: public/index.html
+          echo "$template_content" > public/index.html
 
       - name: 🚀 Subir a GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
