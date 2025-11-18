@@ -95,21 +95,42 @@ jobs:
             </tr>"
           done
 
-          # Leer la plantilla y hacer reemplazos de manera segura
+          # Método robusto para reemplazar variables
           template_content=$(cat plantilla.html)
           
-          # Reemplazar variables una por una de manera explícita
-          template_content=$(echo "$template_content" | sed "s/{{ORG}}/$ORG/g")
-          template_content=$(echo "$template_content" | sed "s/{{ORG_UPPER}}/${ORG^^}/g")
-          template_content=$(echo "$template_content" | sed "s/{{TOTAL_GLOBAL}}/$total_global/g")
-          template_content=$(echo "$template_content" | sed "s/{{FECHA_ACTUAL}}/$fecha_actual/g")
-          template_content=$(echo "$template_content" | sed "s/{{TOTAL_CONTRIBUTORS}}/$total_contributors/g")
-          template_content=$(echo "$template_content" | sed "s/{{TOTAL_REPOS}}/$total_repos/g")
-          template_content=$(echo "$template_content" | sed "s/{{AVG_COMMITS}}/$avg_commits/g")
+          # Crear archivo temporal con el contenido
+          echo "$template_content" > temp_template.html
           
-          template_content=$(echo "$template_content" | sed "s|{{ROWS}}|$rows|")
+          # Reemplazar variables simples primero
+          sed -i "s/{{ORG}}/$ORG/g" temp_template.html
+          sed -i "s/{{ORG_UPPER}}/${ORG^^}/g" temp_template.html
+          sed -i "s/{{TOTAL_GLOBAL}}/$total_global/g" temp_template.html
+          sed -i "s/{{FECHA_ACTUAL}}/$fecha_actual/g" temp_template.html
+          sed -i "s/{{TOTAL_CONTRIBUTORS}}/$total_contributors/g" temp_template.html
+          sed -i "s/{{TOTAL_REPOS}}/$total_repos/g" temp_template.html
+          sed -i "s/{{AVG_COMMITS}}/$avg_commits/g" temp_template.html
+          
+          # Para las rows, usar un método diferente
+          # Crear archivo con las rows
+          echo "$rows" > temp_rows.html
+          
+          # Usar awk para insertar las rows en el lugar correcto
+          awk '
+            /{{ROWS}}/ {
+              while ((getline line < "temp_rows.html") > 0) {
+                print line
+              }
+              close("temp_rows.html")
+              next
+            }
+            { print }
+          ' temp_template.html > public/index.html
+          
+          # Limpiar archivos temporales
+          rm -f temp_template.html temp_rows.html
 
-          echo "$template_content" > public/index.html
+          echo "✅ HTML generado exitosamente"
+          echo "📊 Estadísticas:"
           echo "   - Contribuidores: $total_contributors"
           echo "   - Repositorios: $total_repos"
           echo "   - Total commits: $total_global"
