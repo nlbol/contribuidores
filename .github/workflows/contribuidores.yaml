@@ -37,7 +37,7 @@ jobs:
               "https://api.github.com/repos/$ORG/$repo/contributors?per_page=100")
 
             while read -r login commits; do
-              global_commits["$login"]=$(( ${global_commits["$login"]} + commits ))
+              global_commits["$login"]=$(( ${global_commits["$login"]:-0} + commits ))
               repo_commits["$login:$repo"]=$commits
             done < <(echo "$response" | jq -r '.[] | "\(.login) \(.contributions)"')
           done
@@ -49,156 +49,92 @@ jobs:
 
           fecha_actual="$(date +"%Y-%m-%d %H:%M:%S %Z")"
 
-          OUTPUT=public/index.html
-          cat <<EOF > $OUTPUT
-          <!DOCTYPE html>
-          <html lang="es">
-          <head>
-            <meta charset="UTF-8">
-            <title>Contribuciones - ${ORG^^}</title>
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <style>
-              body {
-                font-family: system-ui, sans-serif;
-                margin: 2rem auto;
-                max-width: 960px;
-                padding: 1rem;
-                background: #f4f6f8;
-                color: #2d3436;
-              }
-              h1 {
-                text-align: center;
-                color: #2c3e50;
-              }
-              .table-container {
-                overflow-x: auto;
-                max-height: 80vh;
-              }
-              table {
-                width: 100%;
-                border-collapse: collapse;
-                margin-top: 2rem;
-                box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-                background: #ffffff;
-                border-radius: 8px;
-                overflow: hidden;
-                min-width: 600px;
-              }
-              th {
-                background-color: #2c3e50;
-                color: #ecf0f1;
-                padding: 1rem;
-                text-align: left;
-                font-weight: 600;
-                position: sticky;
-                top: 0;
-                z-index: 1;
-              }
-              td {
-                border-top: 1px solid #ecf0f1;
-                padding: 0.75rem;
-                text-align: left;
-                vertical-align: top;
-                background-color: #ffffff;
-              }
-              tr:nth-child(even) td {
-                background-color: #f9f9f9;
-              }
-              ul {
-                padding-left: 1.2rem;
-                margin: 0;
-              }
-              footer {
-                margin-top: 3rem;
-                text-align: center;
-                font-size: 0.9rem;
-                color: #7f8c8d;
-              }
-              .fecha {
-                text-align: center;
-                font-size: 0.9rem;
-                color: #636e72;
-                margin-top: 1rem;
-              }
-              @media (max-width: 600px) {
-                .table-container {
-                  overflow-x: auto;
-                }
-                table, thead, tbody, th, td, tr {
-                  display: block;
-                }
-                th {
-                  position: absolute;
-                  top: -9999px;
-                  left: -9999px;
-                }
-                td {
-                  border: none;
-                  position: relative;
-                  padding-left: 50%;
-                  margin-bottom: 0.5rem;
-                }
-                td:before {
-                  position: absolute;
-                  top: 0;
-                  left: 0;
-                  width: 45%;
-                  padding-left: 0.5rem;
-                  font-weight: bold;
-                  white-space: nowrap;
-                }
-                td:nth-of-type(1):before { content: "Usuario"; }
-                td:nth-of-type(2):before { content: "Total"; }
-                td:nth-of-type(3):before { content: "% Global"; }
-                td:nth-of-type(4):before { content: "Por Repositorio"; }
-              }
-            </style>
-          </head>
-          <body>
-            <h1>📊 Informe de Contribuciones - NLBOL</h1>
-            <p>Total de commits: <strong>$total_global</strong></p>
-            <div class="fecha">Última actualización: <strong>$fecha_actual</strong></div>
-            <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Usuario</th>
-                  <th>Total</th>
-                  <th>% Global</th>
-                  <th>Por Repositorio</th>
-                </tr>
-              </thead>
-              <tbody>
-          EOF
-          
+          # Calcular estadísticas adicionales
+          total_contributors=${#global_commits[@]}
+          total_repos=$(echo "$repos" | wc -w | tr -d ' ')
+          avg_commits=$(( total_global / (total_contributors > 0 ? total_contributors : 1) ))
+
+          rows=""
           for user in $(for u in "${!global_commits[@]}"; do echo "$u ${global_commits[$u]}"; done | sort -k2 -nr | awk '{print $1}'); do
             user_total=${global_commits["$user"]}
             percent_global=$(awk "BEGIN { printf \"%.1f\", ($user_total/$total_global)*100 }")
+            user_initials=$(echo "$user" | sed -E 's/([a-zA-Z])[a-zA-Z]*/\1/g' | cut -c1-2 | tr '[:lower:]' '[:upper:]')
+            progress_width=$(awk "BEGIN { print int($percent_global) }")
+            if [[ $progress_width -gt 100 ]]; then
+              progress_width=100
+            fi
 
-            detail="<ul>"
+            detail="<div class='repo-list'>"
             for repo in $repos; do
               key="$user:$repo"
-              if [[ -n "${repo_commits[$key]}" ]]; then
+              if [[ -n "${repo_commits[$key]}" && "${repo_commits[$key]}" -gt 0 ]]; then
                 repo_total=${repo_commits[$key]}
                 percent_repo=$(awk "BEGIN { printf \"%.1f\", ($repo_total/$user_total)*100 }")
-                detail+="<li>$repo: $repo_total commits (${percent_repo}%)</li>"
+                detail+="<div class='repo-item'><span class='repo-name'>$repo</span><span class='repo-stats'>$repo_total commits (${percent_repo}%)</span></div>"
               fi
             done
-            detail+="</ul>"
+            detail+="</div>"
 
-            echo "<tr><td>$user</td><td>$user_total</td><td>${percent_global}%</td><td>$detail</td></tr>" >> $OUTPUT
+            rows+="<tr>
+            <td>
+              <div class='user-cell'>
+                  <div class='user-avatar'>$user_initials</div>
+                  <span>$user</span>
+              </div>
+            </td>
+            <td><strong>$user_total</strong></td>
+            <td class='percentage-cell'>
+              <div class='progress-container'>
+                  <span>${percent_global}%</span>
+                  <div class='progress-bar'>
+                      <div class='progress-fill' style='width: ${progress_width}%'></div>
+                  </div>
+              </div>
+            </td>
+            <td>$detail</td>
+            </tr>"
           done
 
-          cat <<EOF >> $OUTPUT
-              </tbody>
-            </table>
-            </div>
-            <footer>
-              Generado automáticamente por GitHub Actions.
-            </footer>
-          </body>
-          </html>
-          EOF
+          # Método robusto para reemplazar variables
+          template_content=$(cat plantilla.html)
+          
+          # Crear archivo temporal con el contenido
+          echo "$template_content" > temp_template.html
+          
+          # Reemplazar variables simples primero
+          sed -i "s/{{ORG}}/$ORG/g" temp_template.html
+          sed -i "s/{{ORG_UPPER}}/${ORG^^}/g" temp_template.html
+          sed -i "s/{{TOTAL_GLOBAL}}/$total_global/g" temp_template.html
+          sed -i "s/{{FECHA_ACTUAL}}/$fecha_actual/g" temp_template.html
+          sed -i "s/{{TOTAL_CONTRIBUTORS}}/$total_contributors/g" temp_template.html
+          sed -i "s/{{TOTAL_REPOS}}/$total_repos/g" temp_template.html
+          sed -i "s/{{AVG_COMMITS}}/$avg_commits/g" temp_template.html
+          
+          # Para las rows, usar un método diferente
+          # Crear archivo con las rows
+          echo "$rows" > temp_rows.html
+          
+          # Usar awk para insertar las rows en el lugar correcto
+          awk '
+            /{{ROWS}}/ {
+              while ((getline line < "temp_rows.html") > 0) {
+                print line
+              }
+              close("temp_rows.html")
+              next
+            }
+            { print }
+          ' temp_template.html > public/index.html
+          
+          # Limpiar archivos temporales
+          rm -f temp_template.html temp_rows.html
+
+          echo "✅ HTML generado exitosamente"
+          echo "📊 Estadísticas:"
+          echo "   - Contribuidores: $total_contributors"
+          echo "   - Repositorios: $total_repos"
+          echo "   - Total commits: $total_global"
+          echo "   - Promedio: $avg_commits"
 
       - name: 🚀 Subir a GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
