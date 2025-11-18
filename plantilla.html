@@ -4,124 +4,472 @@
     <meta charset="UTF-8">
     <title>Contribuciones - {{ORG_UPPER}}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --secondary: #6b7280;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --background: #f9fafb;
+            --card: #ffffff;
+            --text: #111827;
+            --text-light: #6b7280;
+            --border: #d1d5db;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: system-ui, sans-serif;
-            margin: 2rem auto;
-            max-width: 960px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--background);
+            min-height: 100vh;
             padding: 1rem;
-            background: #f4f6f8;
-            color: #2d3436;
+            color: var(--text);
+            line-height: 1.6;
         }
-        h1 {
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
             text-align: center;
-            color: #2c3e50;
+            margin-bottom: 2rem;
+            padding: 2rem 1rem;
         }
-        .table-container {
+
+        .header h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            color: var(--text-light);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--card);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            text-align: center;
+            border: 1px solid var(--border);
+            transition: all 0.2s ease;
+        }
+
+        .stat-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+
+        .stat-card i {
+            font-size: 1.75rem;
+            color: var(--primary);
+            margin-bottom: 0.75rem;
+        }
+
+        .stat-number {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            color: var(--text-light);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+
+        .main-card {
+            background: var(--card);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            border: 1px solid var(--border);
+            margin-bottom: 2rem;
+        }
+
+        .card-header {
+            background: var(--card);
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .card-header h2 {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .table-wrapper {
             overflow-x: auto;
-            max-height: 80vh;
+            -webkit-overflow-scrolling: touch;
+            max-height: 70vh;
         }
+
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 2rem;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-            background: #ffffff;
-            border-radius: 8px;
-            overflow: hidden;
-            min-width: 600px;
+            min-width: 800px;
         }
+
+        thead {
+            background: #f8fafc;
+            position: sticky;
+            top: 0;
+        }
+
         th {
-            background-color: #2c3e50;
-            color: #ecf0f1;
             padding: 1rem;
             text-align: left;
             font-weight: 600;
-            position: sticky;
-            top: 0;
-            z-index: 1;
+            font-size: 0.875rem;
+            color: var(--text);
+            border-bottom: 2px solid var(--border);
+            white-space: nowrap;
         }
+
         td {
-            border-top: 1px solid #ecf0f1;
-            padding: 0.75rem;
-            text-align: left;
+            padding: 1rem;
+            border-bottom: 1px solid #f1f5f9;
             vertical-align: top;
-            background-color: #ffffff;
         }
-        tr:nth-child(even) td {
-            background-color: #f9f9f9;
+
+        tr:last-child td {
+            border-bottom: none;
         }
-        ul {
-            padding-left: 1.2rem;
-            margin: 0;
+
+        tr:hover td {
+            background: #fafafa;
         }
-        footer {
-            margin-top: 3rem;
-            text-align: center;
+
+        .user-cell {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 500;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), #8b5cf6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+
+        .percentage-cell {
+            min-width: 80px;
+        }
+
+        .progress-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .progress-bar {
+            width: 80px;
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 3px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .repo-list {
+            list-style: none;
+            max-width: 300px;
+        }
+
+        .repo-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.375rem 0;
+            border-bottom: 1px solid #f8fafc;
+        }
+
+        .repo-item:last-child {
+            border-bottom: none;
+        }
+
+        .repo-name {
+            font-weight: 500;
+            color: var(--text);
             font-size: 0.9rem;
-            color: #7f8c8d;
         }
-        .fecha {
+
+        .repo-stats {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-light);
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+
+        .footer {
             text-align: center;
-            font-size: 0.9rem;
-            color: #636e72;
-            margin-top: 1rem;
+            padding: 2rem 1rem;
+            color: var(--text-light);
         }
-        @media (max-width: 600px) {
-            .table-container {
-                overflow-x: auto;
+
+        .last-update {
+            background: #f8fafc;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            border: 1px solid var(--border);
+        }
+
+        /* Mejoras específicas para móvil */
+        @media (max-width: 768px) {
+            body {
+                padding: 0.5rem;
             }
-            table, thead, tbody, th, td, tr {
-                display: block;
+
+            .header {
+                padding: 1.5rem 0.5rem;
+                margin-bottom: 1.5rem;
             }
-            th {
-                position: absolute;
-                top: -9999px;
-                left: -9999px;
+
+            .header h1 {
+                font-size: 1.75rem;
+                flex-direction: column;
+                gap: 0.5rem;
             }
-            td {
-                border: none;
-                position: relative;
-                padding-left: 50%;
-                margin-bottom: 0.5rem;
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.75rem;
+                margin-bottom: 1.5rem;
             }
-            td:before {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 45%;
-                padding-left: 0.5rem;
-                font-weight: bold;
-                white-space: nowrap;
+
+            .stat-card {
+                padding: 1rem;
             }
-            td:nth-of-type(1):before { content: "Usuario"; }
-            td:nth-of-type(2):before { content: "Total"; }
-            td:nth-of-type(3):before { content: "% Global"; }
-            td:nth-of-type(4):before { content: "Por Repositorio"; }
+
+            .stat-number {
+                font-size: 1.5rem;
+            }
+
+            .card-header {
+                padding: 1rem;
+            }
+
+            .card-header h2 {
+                font-size: 1.1rem;
+                justify-content: center;
+            }
+
+            .table-wrapper {
+                max-height: 60vh;
+                border-radius: 0 0 12px 12px;
+            }
+
+            th, td {
+                padding: 0.75rem 0.5rem;
+                font-size: 0.85rem;
+            }
+
+            .user-cell {
+                gap: 0.5rem;
+            }
+
+            .user-avatar {
+                width: 28px;
+                height: 28px;
+                font-size: 0.75rem;
+            }
+
+            .progress-container {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.25rem;
+            }
+
+            .progress-bar {
+                width: 60px;
+            }
+
+            .repo-list {
+                max-width: 250px;
+            }
+
+            .repo-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.25rem;
+                padding: 0.5rem 0;
+            }
+
+            .last-update {
+                padding: 0.75rem 1rem;
+                font-size: 0.85rem;
+                flex-direction: column;
+                gap: 0.25rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .header p {
+                font-size: 1rem;
+            }
+
+            th, td {
+                padding: 0.5rem 0.25rem;
+                font-size: 0.8rem;
+            }
+
+            table {
+                min-width: 700px;
+            }
+
+            .repo-list {
+                max-width: 200px;
+            }
+        }
+
+        /* Scrollbar personalizado */
+        .table-wrapper::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+
+        .table-wrapper::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .table-wrapper::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+
+        .table-wrapper::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
         }
     </style>
 </head>
 <body>
-    <h1>📊 Informe de Contribuciones - {{ORG}}</h1>
-    <p>Total de commits: <strong>{{TOTAL_GLOBAL}}</strong></p>
-    <div class="fecha">Última actualización: <strong>{{FECHA_ACTUAL}}</strong></div>
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th>Usuario</th>
-                    <th>Total</th>
-                    <th>% Global</th>
-                    <th>Por Repositorio</th>
-                </tr>
-            </thead>
-            <tbody>
-                {{ROWS}}
-            </tbody>
-        </table>
+    <div class="container">
+        <header class="header">
+            <h1>
+                <i class="fas fa-chart-line"></i>
+                Contribuciones
+            </h1>
+            <p>{{ORG}}</p>
+        </header>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <i class="fas fa-users"></i>
+                <div class="stat-number">{{TOTAL_CONTRIBUTORS}}</div>
+                <div class="stat-label">Contribuidores</div>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-code-branch"></i>
+                <div class="stat-number">{{TOTAL_REPOS}}</div>
+                <div class="stat-label">Repositorios</div>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-code-commit"></i>
+                <div class="stat-number">{{TOTAL_GLOBAL}}</div>
+                <div class="stat-label">Total Commits</div>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-calculator"></i>
+                <div class="stat-number">{{AVG_COMMITS}}</div>
+                <div class="stat-label">Promedio por Usuario</div>
+            </div>
+        </div>
+
+        <div class="main-card">
+            <div class="card-header">
+                <h2>
+                    <i class="fas fa-table"></i>
+                    Detalle de Contribuciones por Usuario
+                </h2>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Total Commits</th>
+                            <th>% Global</th>
+                            <th>Distribución por Repositorio</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ROWS}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <div class="last-update">
+                <i class="fas fa-sync"></i>
+                <span>Última actualización: <strong>{{FECHA_ACTUAL}}</strong></span>
+            </div>
+            <p style="margin-top: 1rem; font-size: 0.9rem;">
+                Generado automáticamente por GitHub Actions • {{ORG}}
+            </p>
+        </footer>
     </div>
-    <footer>
-        Generado automáticamente por GitHub Actions.
-    </footer>
 </body>
 </html>
