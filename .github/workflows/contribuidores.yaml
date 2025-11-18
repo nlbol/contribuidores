@@ -37,7 +37,7 @@ jobs:
               "https://api.github.com/repos/$ORG/$repo/contributors?per_page=100")
 
             while read -r login commits; do
-              global_commits["$login"]=$(( ${global_commits["$login"]} + commits ))
+              global_commits["$login"]=$(( ${global_commits["$login"]:-0} + commits ))
               repo_commits["$login:$repo"]=$commits
             done < <(echo "$response" | jq -r '.[] | "\(.login) \(.contributions)"')
           done
@@ -49,8 +49,11 @@ jobs:
 
           fecha_actual="$(date +"%Y-%m-%d %H:%M:%S %Z")"
 
-          OUTPUT=public/index.html
-          
+          # Calcular estadísticas adicionales
+          total_contributors=${#global_commits[@]}
+          total_repos=$(echo "$repos" | wc -w | tr -d ' ')
+          avg_commits=$(( total_global / (total_contributors > 0 ? total_contributors : 1) ))
+
           rows=""
           for user in $(for u in "${!global_commits[@]}"; do echo "$u ${global_commits[$u]}"; done | sort -k2 -nr | awk '{print $1}'); do
             user_total=${global_commits["$user"]}
@@ -64,53 +67,60 @@ jobs:
             detail="<div class='repo-list'>"
             for repo in $repos; do
               key="$user:$repo"
-              if [[ -n "${repo_commits[$key]}" ]]; then
+              if [[ -n "${repo_commits[$key]}" && "${repo_commits[$key]}" -gt 0 ]]; then
                 repo_total=${repo_commits[$key]}
                 percent_repo=$(awk "BEGIN { printf \"%.1f\", ($repo_total/$user_total)*100 }")
                 detail+="<div class='repo-item'><span class='repo-name'>$repo</span><span class='repo-stats'>$repo_total commits (${percent_repo}%)</span></div>"
               fi
             done
             detail+="</div>"
-          rows+="<tr>
-          <td>
-            <div class='user-cell'>
-                <div class='user-avatar'>$user_initials</div>
-                <span>$user</span>
-            </div>
-          </td>
-          <td><strong>$user_total</strong></td>
-          <td class='percentage-cell'>
-            <div class='progress-container'>
-                <span>${percent_global}%</span>
-                <div class='progress-bar'>
-                    <div class='progress-fill' style='width: ${progress_width}%'></div>
-                </div>
-            </div>
-          </td>
-          <td>$detail</td>
-          </tr>"
+
+            rows+="<tr>
+            <td>
+              <div class='user-cell'>
+                  <div class='user-avatar'>$user_initials</div>
+                  <span>$user</span>
+              </div>
+            </td>
+            <td><strong>$user_total</strong></td>
+            <td class='percentage-cell'>
+              <div class='progress-container'>
+                  <span>${percent_global}%</span>
+                  <div class='progress-bar'>
+                      <div class='progress-fill' style='width: ${progress_width}%'></div>
+                  </div>
+              </div>
+            </td>
+            <td>$detail</td>
+            </tr>"
           done
 
-          
+          # Leer la plantilla y hacer reemplazos de manera segura
           template_content=$(cat plantilla.html)
-          template_content="${template_content//{{ORG}}/$ORG}"
-          template_content="${template_content//{{ORG_UPPER}}/${ORG^^}}"
-          template_content="${template_content//{{TOTAL_GLOBAL}}/$total_global}"
-          template_content="${template_content//{{FECHA_ACTUAL}}/$fecha_actual}"
-          template_content="${template_content//{{ROWS}}/$rows}"
-
-          total_contributors=${#global_commits[@]}
-          total_repos=$(echo "$repos" | wc -w)
-          avg_commits=$(( total_global / (total_contributors > 0 ? total_contributors : 1) ))
-
-          template_content="${template_content//{{TOTAL_CONTRIBUTORS}}/$total_contributors}"
-          template_content="${template_content//{{TOTAL_REPOS}}/$total_repos}"
-          template_content="${template_content//{{AVG_COMMITS}}/$avg_commits}"
+          
+          # Reemplazar variables una por una de manera explícita
+          template_content=$(echo "$template_content" | sed "s/{{ORG}}/$ORG/g")
+          template_content=$(echo "$template_content" | sed "s/{{ORG_UPPER}}/${ORG^^}/g")
+          template_content=$(echo "$template_content" | sed "s/{{TOTAL_GLOBAL}}/$total_global/g")
+          template_content=$(echo "$template_content" | sed "s/{{FECHA_ACTUAL}}/$fecha_actual/g")
+          template_content=$(echo "$template_content" | sed "s/{{TOTAL_CONTRIBUTORS}}/$total_contributors/g")
+          template_content=$(echo "$template_content" | sed "s/{{TOTAL_REPOS}}/$total_repos/g")
+          template_content=$(echo "$template_content" | sed "s/{{AVG_COMMITS}}/$avg_commits/g")
+          
+          template_content=$(echo "$template_content" | sed "s|{{ROWS}}|$rows|")
 
           echo "$template_content" > public/index.html
+          echo "   - Contribuidores: $total_contributors"
+          echo "   - Repositorios: $total_repos"
+          echo "   - Total commits: $total_global"
+          echo "   - Promedio: $avg_commits"
 
       - name: 🚀 Subir a GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
+          publish_branch: gh-pages
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./public
