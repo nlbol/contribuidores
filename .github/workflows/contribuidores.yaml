@@ -52,22 +52,47 @@ jobs:
           OUTPUT=public/index.html
           
           rows=""
-          for user in $(for u in "${!global_commits[@]}"; do echo "$u ${global_commits[$u]}"; done | sort -k2 -nr | awk '{print $1}'); do
-            user_total=${global_commits["$user"]}
-            percent_global=$(awk "BEGIN { printf \"%.1f\", ($user_total/$total_global)*100 }")
+for user in $(for u in "${!global_commits[@]}"; do echo "$u ${global_commits[$u]}"; done | sort -k2 -nr | awk '{print $1}'); do
+    user_total=${global_commits["$user"]}
+    percent_global=$(awk "BEGIN { printf \"%.1f\", ($user_total/$total_global)*100 }")
+    
+    user_initials=$(echo "$user" | sed -E 's/([a-zA-Z])[a-zA-Z]*/\1/g' | cut -c1-2 | tr '[:lower:]' '[:upper:]')
+    
+    progress_width=$(awk "BEGIN { print int($percent_global) }")
+    if [[ $progress_width -gt 100 ]]; then
+        progress_width=100
+    fi
 
-            detail="<ul>"
-            for repo in $repos; do
-              key="$user:$repo"
-              if [[ -n "${repo_commits[$key]}" ]]; then
-                repo_total=${repo_commits[$key]}
-                percent_repo=$(awk "BEGIN { printf \"%.1f\", ($repo_total/$user_total)*100 }")
-                detail+="<li>$repo: $repo_total commits (${percent_repo}%)</li>"
-              fi
-            done
-            detail+="</ul>"
+    detail="<div class='repo-list'>"
+    for repo in $repos; do
+        key="$user:$repo"
+        if [[ -n "${repo_commits[$key]}" ]]; then
+            repo_total=${repo_commits[$key]}
+            percent_repo=$(awk "BEGIN { printf \"%.1f\", ($repo_total/$user_total)*100 }")
+            detail+="<div class='repo-item'><span class='repo-name'>$repo</span><span class='repo-stats'>$repo_total commits (${percent_repo}%)</span></div>"
+        fi
+    done
+    detail+="</div>"
 
-            rows+="<tr><td>$user</td><td>$user_total</td><td>${percent_global}%</td><td>$detail</td></tr>"
+    rows+="<tr>
+        <td>
+            <div class='user-cell'>
+                <div class='user-avatar'>$user_initials</div>
+                <span>$user</span>
+            </div>
+        </td>
+        <td><strong>$user_total</strong></td>
+        <td class='percentage-cell'>
+            <div class='progress-container'>
+                <span>${percent_global}%</span>
+                <div class='progress-bar'>
+                    <div class='progress-fill' style='width: ${progress_width}%'></div>
+                </div>
+            </div>
+        </td>
+        <td>$detail</td>
+    </tr>"
+done
           done
 
           
@@ -77,6 +102,16 @@ template_content="${template_content//{{ORG}}/$ORG}"
           template_content="${template_content//{{TOTAL_GLOBAL}}/$total_global}"
           template_content="${template_content//{{FECHA_ACTUAL}}/$fecha_actual}"
           template_content="${template_content//{{ROWS}}/$rows}"
+
+total_contributors=${#global_commits[@]}
+total_repos=$(echo "$repos" | wc -w)
+avg_commits=$(( total_global / (total_contributors > 0 ? total_contributors : 1) ))
+
+# Y reemplazar también estas nuevas variables:
+template_content="${template_content//{{TOTAL_CONTRIBUTORS}}/$total_contributors}"
+template_content="${template_content//{{TOTAL_REPOS}}/$total_repos}"
+template_content="${template_content//{{AVG_COMMITS}}/$avg_commits}"
+
 
           # Guardar en el mismo lugar que antes: public/index.html
           echo "$template_content" > public/index.html
